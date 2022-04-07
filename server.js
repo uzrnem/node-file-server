@@ -7,6 +7,9 @@ const app = express();
 
 app.use('/list', (req, res) => {
   let dir = path.join(__dirname, 'files');
+  if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+  }
   fs.readdir(dir, (err, files) => {
     if(err){
       res.status(400).send( err )
