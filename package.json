@@ -1,0 +1,21 @@
+{
+  "name": "file-server",
+  "version": "1.0.0",
+  "description": "This is node app for upload download files in local network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "nodejs",
+    "expressjs",
+    "file",
+    "upload",
+    "download",
+    "javascript"
+  ],
+  "author": "Bhagyesh Patel",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
