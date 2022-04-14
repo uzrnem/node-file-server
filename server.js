@@ -2,38 +2,89 @@ const express = require('express');
 
 const fs = require('fs');
 const path = require('path');
+const formidable = require('formidable');
 
 const app = express();
 
+let mainDir = path.join(__dirname, 'files');
+if (!fs.existsSync(mainDir)){
+  fs.mkdirSync(mainDir);
+}
+
 app.use('/list', (req, res) => {
-  let dir = path.join(__dirname, 'files');
+  console.log('listing /', req.query.path)
+  let dir = path.join(__dirname, 'files/', req.query.path.replace('}{', '/'));
   if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir);
+    res.status(200).send( []);
+    return
   }
-  fs.readdir(dir, (err, files) => {
-    if(err){
-      res.status(400).send( err )
-    }else{
-      res.status(200).send( JSON.stringify(files));
-    }
-  })
+  var files = fs.readdirSync(dir)
+    .map(function(file) {
+      lstats = fs.lstatSync(path.resolve(dir, file))
+      childCount = null
+      if (lstats.isDirectory()) {
+        childCount = fs.readdirSync(path.resolve(dir, file)).length
+      }
+      return {
+        name: file,
+        time: lstats.mtime.getTime(),
+        childCount: childCount,
+        isDir: lstats.isDirectory(),
+        size: lstats.size
+      }; 
+    })
+    //.sort(function(a, b) { return a.name.toLowerCase() > b.name.toLowerCase(); })
+    .sort(function(a, b) {
+      if (a.isDir == b.isDir) {
+        if (a.name.toLowerCase() < b.name.toLowerCase()) {
+          return -1
+        } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+          return 1
+        } else return 0
+      }
+      if (a.isDir) {
+        return -1
+      } else {
+        return 1
+      }
+    });
+  res.status(200).send( JSON.stringify(files));
 });
 
 app.use('/upload', (req, res) => {
-  let fileName = path.basename(req.url);
-  console.log("uploading ", fileName)
-  let file = path.join(__dirname, 'files', fileName)
-  req.pipe(fs.createWriteStream(file));
-  req.on('end', () => {
-    res.status(200).send('File Uploaded Succesfully..!');
-    res.end();
-  })
+  let filePath = req.query.path.replace('}{', '/')
+  var form = new formidable.IncomingForm();
+  form.parse(req, function (err, fields, files) {
+    console.debug("files : ", files)
+    
+    var oldpath = files.file.filepath;
+    var newpath = 'files/' + filePath + files.file.originalFilename;
+    console.log("uploading ", oldpath, " : ", newpath)
+    fs.readFile(oldpath, function (err, data) {
+      if (err) throw err;
+      console.debug('File read!');
+
+      // Write the file
+      fs.writeFile(newpath, data, function (err) {
+          if (err) throw err;
+          res.write('File uploaded and moved!');
+          res.end();
+          console.debug('File written!');
+      });
+
+      // Delete the file
+      fs.unlink(oldpath, function (err) {
+          if (err) throw err;
+          console.debug('File deleted!');
+      });
+    });
+  });
 })
 
 app.use('/delete', (req, res) => {
-  let fileName = path.basename(req.url);
-  console.log("deleting ", fileName)
-  let file = path.join(__dirname, 'files', fileName)
+  let filePath = req.query.path.replace('}{', '/')
+  console.log("deleting filePath: ", filePath)
+  let file = path.join(__dirname, 'files/', filePath)
   fs.unlinkSync(file)
   res.status(200).send('File Deleted Succesfully..!');
   res.end();

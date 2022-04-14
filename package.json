@@ -16,6 +16,7 @@
   ],
   "author": "Bhagyesh Patel",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "formidable": "^2.0.1"
   }
 }

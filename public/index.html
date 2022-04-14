@@ -10,12 +10,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.min.js" integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js" integrity="sha512-XdUZ5nrNkVySQBnnM5vzDqHai823Spoq1W3pJoQwomQja+o4Nw0Ew1ppxo5bhF2vMug6sfibhKWcNJsG8Vj9tg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
+    .table td, .table th {
+      padding: .15rem;
+    }
   </style>
 </head>
-<body>
+<body> <!--  class="modal-open" style="padding-right: 15px;" -->
   <div class="container" id="vue-app">
     <div class="col-12">
       <h3>Upload File</h3>
+
       <!-- div class="input-group my-3">
         <div class="input-group-prepend">
           <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
@@ -28,18 +32,33 @@
       <div class="bd-example">          
         <div class="input-group">
           <input type="file" class="form-control" id="file" ref="file" v-on:change="setupFile()">
-          <a class="btn btn-primary" v-on:click="submitFile()">Upload</a>
+          <a class="btn btn-primary" :class="[isUploading === true ? 'disabled' : '']" v-on:click="submitFile()">Upload</a>
         </div>
       </div>
+      <div class="progress mt-2" v-if="isUploading">
+        <div class="progress-bar bg-success" :style="'width:' + progress + '%'">Uploading</div>
+      </div>
+    </div>
+    <div class="col-12 mt-2">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb" style="background-color: transparent !important;">
+          <li class="breadcrumb-item active" aria-current="page" v-if="path.length == 0">Root</li>
+          <li class="breadcrumb-item" v-else><a href="#" @click="updatePath('Root')">Root</a></li>
+          <template v-for="(item, index) in path">
+            <li class="breadcrumb-item active" aria-current="page" v-if="(index + 1) === path.length">{{item}}</li>
+            <li class="breadcrumb-item" v-else><a href="#" @click="updatePath(item)">{{item}}</a></li>
+          </template>
+        </ol>
+      </nav>
     </div>
     <div class="col-12">
-      <br />
       <table class="table table-striped">
         <thead>
           <tr>
             <th></th>
             <th>File</th>
-            <th>Download</th>
+            <th>Size</th>
+            <th>Modified</th>
             <th>Delete</th>
             <th></th>
           </tr>
@@ -47,12 +66,17 @@
         <tbody>
           <tr v-for="item in list">
             <td></td>
-            <td><span class="t-orange">{{item}}</span></td>
-            <td>
-              <a class="btn btn-secondary" :href="'/' + item" target="_blank" >Download</a>
+            <td v-if="item.isDir">
+              <a class="t-orange" @click="addPath(item)" ><b>{{item.name}}</b></a>
             </td>
+            <td v-else>
+              <a class="t-orange" :href="path.join('/') + '/' + item.name" target="_blank" ><i>{{item.name}}</i></a>
+            </td>
+            <td v-if="item.isDir == false"><span class="pull-right">{{formatBytes(item.size)}}</span></td>
+            <td v-else><span class="pull-right">{{item.childCount}} {{(item.childCount < 2) ? 'item' : 'items'}}</span></td>
+            <td><span class="pull-right">{{new Date(item.time).toLocaleString()}}</span></td>
             <td>
-              <a class="btn btn-warning" @click="deleteItem(item)" >Delete</a>
+              <a class="badge badge-danger" style="cursor: pointer;" @click="deleteItem(item)"><b>Delete</b></a>
             </td>
             <td></td>
           </tr>
@@ -65,67 +89,137 @@
       </table>
     </div>
   </div>
-</body>
 
+  <!-- Modal>
+  <div class="modal fade show" style="display: block; padding-right: 15px;"">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          ...
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div -->
+
+
+</body>
+<!-- div class="modal-backdrop fade show"></div -->
   <script>
     var app = new Vue({
       el: '#vue-app',
       data: {
         model: {},
         list: [],
-        file: null
+        file: null,
+        progress: 0,
+        isUploading: false,
+        path: []
       },
       created() {
           console.log('Component has been created!');
       },
       methods: {
         deleteItem: function(item) {
-          console.log(item)
-          axios.get('/delete/'+item )
+          console.debug(item)
+          str = this.path.join([separator = '}{'])
+          if (str != "") {
+            str += "}{"
+          }
+          axios.get('/delete?path=' + str + item.name )
           .then((response) => {
-            console.log('deleted: ', item, ', response: ', response)
+            console.debug('deleted: ', item, ', response: ', response)
             this.clear();
           });
         },
         getList: function() {
-          axios.get('/list')
+          str = this.path.join([separator = '}{'])
+          axios.get('/list?path=' + str)
           .then((response) => {
             this.list = response.data;
-            console.log(this.list)
+            console.debug(this.list)
           });
+        },
+        updatePath: function (item) {
+          if (item == 'Root') {
+            this.path = []
+            this.getList()
+            return
+          }
+          var arr = []
+          for (let index = 0; index < this.path.length; index++) {
+            const element = this.path[index];
+            arr.push(element)
+            if (element == item) {
+              this.path = arr
+              this.getList()
+              return
+            }
+          }
+          return
+        },
+        addPath: function (item) {
+          this.path.push(item.name)
+          this.getList()
         },
         submitFile: function() {
           let formData = new FormData();
           formData.append('file', this.file);
-          axios.post( '/upload/'+this.file.name,
+          str = this.path.join([separator = '}{'])
+          if (str != "") {
+            str += "}{"
+          }
+          axios.post( '/upload/'+this.file.name + '?path=' + str,
             formData,
             {
               headers: {
                 'Content-Type': 'multipart/form-data'
               },
               onUploadProgress: (progressEvent) => {
-                var percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                console.log(percentCompleted)
+                this.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
               }
             }
           )
           .then(() => { 
-            console.log('passed: ', this.file.name)
+            console.debug('passed: ', this.file.name)
+            this.isUploading = false
+            document.getElementById("file").value = "";
             this.clear();
           })
           .catch(() => {
-            console.log('failed: ', this.file.name)
+            console.debug('failed: ', this.file.name)
+            this.isUploading = false
             this.clear();
           });
         },
         setupFile: function() {
           this.file = this.$refs.file.files[0];
-          console.log(this.file)
+          console.debug(this.file)
         },
         clear: function() {
           this.model = {
           };
           this.getList();
+        },
+        formatBytes: function(bytes, decimals = 2) {
+          if (bytes === 0) return '0 Bytes';
+
+          const k = 1024;
+          const dm = decimals < 0 ? 0 : decimals;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
       },
       mounted() {
