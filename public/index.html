@@ -1,126 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>File Explorer</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/css/bootstrap.min.css" integrity="sha512-T584yQ/tdRR5QwOpfvDfVQUidzfgc2339Lc8uBDtcp/wYu80d7jwBgAxbyMh0a9YM9F8N3tdErpFI8iaGx6x5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.26.1/axios.min.js" integrity="sha512-bPh3uwgU5qEMipS/VOmRqynnMXGGSRv+72H/N260MQeXZIK4PG48401Bsby9Nq5P5fz7hy5UGNmC/W1Z51h2GQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.1/js/bootstrap.min.js" integrity="sha512-UR25UO94eTnCVwjbXozyeVd6ZqpaAE9naiEUBK/A+QDbfSTQFhPGj5lOR6d8tsgbBk84Ggb5A3EkjsOgPRPcKA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.14/vue.min.js" integrity="sha512-XdUZ5nrNkVySQBnnM5vzDqHai823Spoq1W3pJoQwomQja+o4Nw0Ew1ppxo5bhF2vMug6sfibhKWcNJsG8Vj9tg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <style>
-    .table td, .table th {
-      padding: .15rem;
-    }
-  </style>
-</head>
-<body> <!--  class="modal-open" style="padding-right: 15px;" -->
-  <div class="container" id="vue-app">
-    <div class="col-12">
-      <h3>Upload File</h3>
-
-      <!-- div class="input-group my-3">
-        <div class="input-group-prepend">
-          <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello Bulma!</title>
+    <link rel="stylesheet" href="bulma.min.css">
+    <link rel="stylesheet" href="glyphicons.css">
+    <script src="./axios.min.js" ></script>
+    <script src="./vue.min.js"></script>
+  </head>
+  <body>
+    <nav class="navbar is-transparent is-warning">
+      <div class="navbar-brand">
+        <a class="navbar-item has-text-danger">
+          <strong>Local Drive</strong>
+        </a>
+      </div>
+    </nav>
+    <section class="section pt-2" id="vue-app">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-three-quarters">
+            <div class="file has-name is-fullwidth">
+              <label class="file-label">
+                <input class="file-input" type="file" id="file" ref="file" v-on:change="setupFile()">
+                <span class="file-cta">
+                  <span class="file-icon"><i class="fas fa-upload"></i></span>
+                  <span class="file-label">Choose a file…</span>
+                </span>
+                <span class="file-name">{{file.name}}</span>
+              </label>
+            </div>
+          </div>
+          <div class="column">
+            <button class="button is-primary is-fullwidth"
+                :class="[isUploading == true ? 'is-loading is-static' : '']"
+                v-on:click="submitFile()"
+            >Upload</button>
+          </div>
         </div>
-        <div class="custom-file">
-          <input type="file" class="custom-file-input" id="inputGroupFile01" aria-describedby="inputGroupFileAddon01">
-          <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
+        <div class="columns">
+          <progress class="progress" :value="progress" max="100"
+          :class="[isUploading == true ? 'is-info' : 'is-secondary']">Uploading</progress>
         </div>
-      </div -->
-      <div class="bd-example">          
-        <div class="input-group">
-          <input type="file" class="form-control" id="file" ref="file" v-on:change="setupFile()">
-          <a class="btn btn-primary" :class="[isUploading === true ? 'disabled' : '']" v-on:click="submitFile()">Upload</a>
+        <div class="columns pt-2 is-centered">
+            <div class="column">
+                Directory:
+            </div>
+            <div class="column is-three-quarters">
+                <nav class="breadcrumb has-succeeds-separator is-medium" aria-label="breadcrumbs">
+                  <ul>
+                    <li v-if="path.length == 0" class="is-active"><a href="#" aria-current="page">Root</a></li>
+                    <li v-else><a href="#" @click="updatePath('Root')">Root</a></li>
+                    <template v-for="(item, index) in path">
+                      <li class="is-active" v-if="(index + 1) === path.length"><a href="#" aria-current="page">{{item}}</a></li>
+                      <li v-else><a href="#" @click="updatePath(item)">{{item}}</a></li>
+                    </template>
+                  </ul>
+                </nav>
+            </div>
+        </div>
+        <div class="columns pt-2">
+          <table class="table is-striped is-hoverable is-fullwidth">
+            <thead>
+              <tr>
+                <th></th>
+                <th>File</th>
+                <th>Size</th>
+                <th>Modified</th>
+                <th>Delete</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in list">
+                  <td></td>
+                  <td v-if="item.isDir">
+                    <a class="has-text-success" @click="addPath(item)" >
+                        <span class="glyphicon glyphicon-book" aria-hidden="true"></span>
+                        <b>{{item.name}}</b>
+                    </a>
+                  </td>
+                  <td v-else>
+                    <a class="has-text-link" :href="path.join('/') + '/' + item.name"
+                        target="_blank" >
+                        <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
+                        <i>{{item.name}}</i>
+                    </a>
+                  </td>
+                  <td v-if="item.isDir == false"><span class="pull-right">{{formatBytes(item.size)}}</span></td>
+                  <td v-else><span class="pull-right">{{item.childCount}} {{(item.childCount < 2) ? 'item' : 'items'}}</span></td>
+                  <td><span class="pull-right">{{new Date(item.time).toLocaleString()}}</span></td>
+                  <td>
+                    <a class="button is-danger is-light is-small" @click="deleteItem(item)"><b>Danger</b></a>
+                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td colspan="6" v-if="list.length == 0" class=" has-text-centered">
+                    <p class="has-text-secondary">No Records Found!</p>
+                  </td>
+                </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="progress mt-2" v-if="isUploading">
-        <div class="progress-bar bg-success" :style="'width:' + progress + '%'">Uploading</div>
-      </div>
-    </div>
-    <div class="col-12 mt-2">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb" style="background-color: transparent !important;">
-          <li class="breadcrumb-item active" aria-current="page" v-if="path.length == 0">Root</li>
-          <li class="breadcrumb-item" v-else><a href="#" @click="updatePath('Root')">Root</a></li>
-          <template v-for="(item, index) in path">
-            <li class="breadcrumb-item active" aria-current="page" v-if="(index + 1) === path.length">{{item}}</li>
-            <li class="breadcrumb-item" v-else><a href="#" @click="updatePath(item)">{{item}}</a></li>
-          </template>
-        </ol>
-      </nav>
-    </div>
-    <div class="col-12">
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th></th>
-            <th>File</th>
-            <th>Size</th>
-            <th>Modified</th>
-            <th>Delete</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in list">
-            <td></td>
-            <td v-if="item.isDir">
-              <a class="t-orange" @click="addPath(item)" ><b>{{item.name}}</b></a>
-            </td>
-            <td v-else>
-              <a class="t-orange" :href="path.join('/') + '/' + item.name" target="_blank" ><i>{{item.name}}</i></a>
-            </td>
-            <td v-if="item.isDir == false"><span class="pull-right">{{formatBytes(item.size)}}</span></td>
-            <td v-else><span class="pull-right">{{item.childCount}} {{(item.childCount < 2) ? 'item' : 'items'}}</span></td>
-            <td><span class="pull-right">{{new Date(item.time).toLocaleString()}}</span></td>
-            <td>
-              <a class="badge badge-danger" style="cursor: pointer;" @click="deleteItem(item)"><b>Delete</b></a>
-            </td>
-            <td></td>
-          </tr>
-          <tr>
-            <td colspan="6" v-if="list.length == 0">
-              <p class="t-blue text-center">No Records Found!</p>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Modal>
-  <div class="modal fade show" style="display: block; padding-right: 15px;"">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLongTitle">Modal title</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          ...
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
-        </div>
-      </div>
-    </div>
-  </div -->
-
-
-</body>
-<!-- div class="modal-backdrop fade show"></div -->
+    </section>
+  </body>
   <script>
     var app = new Vue({
       el: '#vue-app',
       data: {
         model: {},
         list: [],
-        file: null,
+        file: {name: ''},
         progress: 0,
         isUploading: false,
         path: []
@@ -172,6 +165,7 @@
           this.getList()
         },
         submitFile: function() {
+          this.isUploading = true
           let formData = new FormData();
           formData.append('file', this.file);
           str = this.path.join([separator = '}{'])
@@ -206,6 +200,9 @@
           console.debug(this.file)
         },
         clear: function() {
+            this.file = {
+                name: ""
+            }
           this.model = {
           };
           this.getList();
