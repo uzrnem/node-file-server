@@ -13,7 +13,7 @@ if (!fs.existsSync(mainDir)){
 
 app.use('/list', (req, res) => {
   console.log('listing /', req.query.path)
-  let dir = path.join(__dirname, 'files/', req.query.path.replace('}{', '/'));
+  let dir = path.join(__dirname, 'files/', req.query.path.replaceAll('}{', '/'));
   if (!fs.existsSync(dir)){
     res.status(200).send( []);
     return
@@ -52,10 +52,9 @@ app.use('/list', (req, res) => {
 });
 
 app.use('/upload', (req, res) => {
-  let filePath = req.query.path.replace('}{', '/')
+  let filePath = req.query.path.replaceAll('}{', '/')
   var form = new formidable.IncomingForm();
   form.parse(req, function (err, fields, files) {
-    console.debug("files : ", files)
     
     var oldpath = files.file.filepath;
     var newpath = 'files/' + filePath + files.file.originalFilename;
@@ -82,7 +81,7 @@ app.use('/upload', (req, res) => {
 })
 
 app.use('/delete', (req, res) => {
-  let filePath = req.query.path.replace('}{', '/')
+  let filePath = req.query.path.replaceAll('}{', '/')
   console.log("deleting filePath: ", filePath)
   let file = path.join(__dirname, 'files/', filePath)
   fs.unlinkSync(file)

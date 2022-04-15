@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hello Bulma!</title>
+    <title>Local Drive</title>
     <link rel="stylesheet" href="bulma.min.css">
     <link rel="stylesheet" href="glyphicons.css">
     <script src="./axios.min.js" ></script>
     <script src="./vue.min.js"></script>
   </head>
   <body>
-    <nav class="navbar is-transparent is-warning">
+    <nav class="navbar has-text-success-dark has-background-primary-light">
       <div class="navbar-brand">
-        <a class="navbar-item has-text-danger">
+        <a class="navbar-item">
           <strong>Local Drive</strong>
         </a>
       </div>
@@ -21,7 +21,7 @@
       <div class="container">
         <div class="columns">
           <div class="column is-three-quarters">
-            <div class="file has-name is-fullwidth">
+            <div class="file has-name is-fullwidth is-warning">
               <label class="file-label">
                 <input class="file-input" type="file" id="file" ref="file" v-on:change="setupFile()">
                 <span class="file-cta">
@@ -82,7 +82,7 @@
                     </a>
                   </td>
                   <td v-else>
-                    <a class="has-text-link" :href="path.join('/') + '/' + item.name"
+                    <a class="has-text-info" :href="path.join('/') + '/' + item.name"
                         target="_blank" >
                         <span class="glyphicon glyphicon-file" aria-hidden="true"></span>
                         <i>{{item.name}}</i>
@@ -91,7 +91,7 @@
                   <td v-if="item.isDir == false"><span class="pull-right">{{formatBytes(item.size)}}</span></td>
                   <td v-else><span class="pull-right">{{item.childCount}} {{(item.childCount < 2) ? 'item' : 'items'}}</span></td>
                   <td><span class="pull-right">{{new Date(item.time).toLocaleString()}}</span></td>
-                  <td>
+                  <td v-if="!item.isDir">
                     <a class="button is-danger is-light is-small" @click="deleteItem(item)"><b>Danger</b></a>
                   </td>
                   <td></td>
